@@ -4,13 +4,15 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
 
-const monitoring = 3
+const monitoring = 2
 const delay = 5
 
 func main() {
@@ -28,6 +30,7 @@ func main() {
 			starMonitoring()
 		case 2:
 			fmt.Println("Exibindo logs ...")
+			printLog()
 		case 0:
 			os.Exit(0)
 		default:
@@ -82,8 +85,10 @@ func testSite(site string) {
 
 	if result.StatusCode == 200 {
 		fmt.Println("Site:", site, "foi carregado com sucesso!")
+		registerLog(site, true)
 	} else {
 		fmt.Println("Site:", site, "está com problemas. Status Code:", result.StatusCode)
+		registerLog(site, false)
 	}
 }
 
@@ -96,9 +101,9 @@ func readFileSite() []string {
 		fmt.Println("Ocorreu um erro:", err)
 	}
 
-	leitor := bufio.NewReader(file)
+	reader := bufio.NewReader(file)
 	for {
-		row, err := leitor.ReadString('\n')
+		row, err := reader.ReadString('\n')
 		row = strings.TrimSpace(row)
 
 		sites = append(sites, row)
@@ -111,4 +116,26 @@ func readFileSite() []string {
 
 	file.Close()
 	return sites
+}
+
+func registerLog(site string, status bool) {
+	file, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	file.WriteString(time.Now().Format("02/01/2007 14:04:05") + " - " + site + " - online: " + strconv.FormatBool(status) + " ")
+
+	file.Close()
+}
+
+func printLog() {
+	file, err := ioutil.ReadFile("log.txt")
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println(string(file))
 }
